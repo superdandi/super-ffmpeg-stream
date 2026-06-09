@@ -201,12 +201,12 @@ obtener_categoria() {
             fi
         fi
     done < "$PARRILLA"
-    head -n1 "$PARRILLA" | grep -oP '\|\s*\K\w+'
+    head -n1 "$PARRILLA" | grep -oP '\|\s*\K\w+' || true
 }
 
 obtener_indice() {
     local categoria="$1"
-    [[ -f "$STATE_FILE" ]] && grep "^$categoria " "$STATE_FILE" | head -1 | awk '{print $2}'
+    [[ -f "$STATE_FILE" ]] && grep "^$categoria " "$STATE_FILE" | head -1 | awk '{print $2}' || true
 }
 
 guardar_indice() {
@@ -352,6 +352,7 @@ if [[ "$MODO" == 1 ]]; then
     echo "  Resolucion : $RES"
     [[ -n "$AUDIO" ]] && echo "  Audio      : $AUDIO" || echo "  [!] Audio de sistema NO DISPONIBLE"
     echo ""
+    echo "  Stream iniciado"
 
     cmd=(ffmpeg -hide_banner -loglevel error)
     cmd+=(-video_size "$RES" -framerate "$FPS" -f x11grab -i ":0.0+0,0")
@@ -390,6 +391,7 @@ if [[ "$MODO" == 3 ]]; then
     echo "  Resolucion  : $CAM_RES"
     [[ -n "$AUDIO" ]] && echo "  Audio       : $AUDIO" || echo "  [!] Microfono NO DISPONIBLE"
     echo ""
+    echo "  Stream iniciado"
 
     cmd=(ffmpeg -hide_banner -loglevel error)
     cmd+=(-f v4l2 -framerate 30 -video_size "$CAM_RES" -i "$CAMPATH")
@@ -426,6 +428,7 @@ has_text_overlay=1
 STREAM_START=$(date +%s)
 : > "$LOG_FILE"
 
+echo "  Stream iniciado"
 trap 'echo ""; echo "  Stream finalizado"; rm -f "$LOG_FILE"; exit 0' INT TERM
 
 while true; do
