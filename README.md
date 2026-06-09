@@ -13,6 +13,7 @@ Todos los videos son tomados de **[archive.org](https://archive.org)**, seleccio
 - **Bash 4+**
 - **xrandr** (detección de resolución opcional)
 - **v4l2-ctl** (cámara, opcional)
+- **yt-dlp** (para reproducción de videos de YouTube)
 
 ## Instalación
 
@@ -120,6 +121,24 @@ El formato es `título | URL`. Solo se requiere la URL después del pipe.
 | `comerciales` | Comerciales vintage |
 | `animaciones` | Separadores entre bloques (Electric Sheep, etc.) |
 
+### Contenido original de Vizcoso
+
+Además del contenido de archive.org, el script puede reproducir videos desde YouTube. Los archivos con prefijo `vizcoso-` contienen URLs de YouTube (canal de [Vizcoso Entertainment](https://www.youtube.com/channel/UCGYhMw5VupEQEnNrQlbT1iA)) y se reproducen **antes** que el contenido de archive.org en cada categoría.
+
+| Archivo | Fuente |
+|---|---|
+| `vizcoso-pelis` | Playlist [Super Producciones](https://www.youtube.com/playlist?list=PL58F985571B763484) |
+| `vizcoso-musicales` | Playlist [music](https://www.youtube.com/playlist?list=PLKCoMIUhCOzWJcczu8WvxxF7XntBbCLSU) + videos del canal |
+| `vizcoso-animaciones` | Videos VIZCOSO SESSION y Vizcoso Entertainment |
+
+#### Script de actualización
+
+```bash
+./actualizar_vizcoso.sh
+```
+
+Actualiza las listas `vizcoso-*` desde YouTube. Ejecutar periódicamente para mantener el contenido sincronizado.
+
 ## Overlay
 
 El script soporta una imagen PNG como overlay (watermark). Por defecto busca en `~/Descargas/vizcosotransparente.png`. Se puede:
@@ -131,11 +150,12 @@ El script soporta una imagen PNG como overlay (watermark). Por defecto busca en 
 ## Funcionamiento interno (modo parrilla)
 
 1. Lee `parrilla` y determina la categoría según la hora actual
-2. Carga la lista de URLs del archivo de categoría
-3. Reproduce el video actual vía FFmpeg con `-re` (velocidad real)
-4. Guarda el índice del siguiente video en `.vlive_state`
-5. Si existe `animaciones`, reproduce un video separador
-6. Repite el ciclo
+2. Carga primero la lista de URLs de `vizcoso-$CATEGORIA` (YouTube, si existe), luego del archivo de categoría (archive.org)
+3. Si la URL es de YouTube, la resuelve a una URL directa vía `yt-dlp -g`
+4. Reproduce el video actual vía FFmpeg con `-re` (velocidad real)
+5. Guarda el índice del siguiente video en `.vlive_state`
+6. Si existen `vizcoso-animaciones` o `animaciones`, reproduce un video separador
+7. Repite el ciclo
 
 El estado se persiste entre reinicios del script para no repetir el mismo video.
 

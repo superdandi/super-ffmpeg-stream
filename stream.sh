@@ -91,8 +91,19 @@ transmitir() {
     "${cmd[@]}" || echo "  [!] Error, saltando..."
 }
 
+resolver_url() {
+    local url="$1"
+    case "$url" in
+        *youtube.com*|*youtu.be*)
+            yt-dlp -g -f "best[height<=720]" "$url" 2>/dev/null | head -1 ;;
+        *) echo "$url" ;;
+    esac
+}
+
 t_re() {
-    transmitir "$1" "$2" -re
+    local url
+    url=$(resolver_url "$1")
+    transmitir "$url" "$2" -re
 }
 
 # ============================================================
@@ -419,10 +430,18 @@ trap 'echo ""; echo "  Stream finalizado"; rm -f "$LOG_FILE"; exit 0' INT TERM
 while true; do
     CATEGORIA=$(obtener_categoria)
     ARCHIVO="$SCRIPT_DIR/$CATEGORIA"
+    VIZ_ARCHIVO="$SCRIPT_DIR/vizcoso-$CATEGORIA"
+
+    URLS=()
+    if [[ -f "$VIZ_ARCHIVO" ]]; then
+        mapfile -t VIZ_URLS < <(cargar_urls "$VIZ_ARCHIVO")
+        URLS+=("${VIZ_URLS[@]}")
+    fi
 
     [[ -f "$ARCHIVO" ]] || { echo "  [!] No se encuentra ~/$CATEGORIA, esperando 30s..."; sleep 30; continue; }
 
-    mapfile -t URLS < <(cargar_urls "$ARCHIVO")
+    mapfile -t ARCHIVE_URLS < <(cargar_urls "$ARCHIVO")
+    URLS+=("${ARCHIVE_URLS[@]}")
     TOTAL=${#URLS[@]}
     [[ $TOTAL -eq 0 ]] && { echo "  [!] ~/$CATEGORIA vacio, esperando 30s..."; sleep 30; continue; }
 
@@ -436,17 +455,24 @@ while true; do
     t_re "${URLS[$IDX]}" "$CATEGORIA $((IDX+1))/$TOTAL"
 
     ARCHIVO_ANIM="$SCRIPT_DIR/animaciones"
+    VIZ_ANIM="$SCRIPT_DIR/vizcoso-animaciones"
+    ANIM_URLS=()
+    if [[ -f "$VIZ_ANIM" ]]; then
+        mapfile -t VIZ_A < <(cargar_urls "$VIZ_ANIM")
+        ANIM_URLS+=("${VIZ_A[@]}")
+    fi
     if [[ -f "$ARCHIVO_ANIM" ]]; then
-        mapfile -t ANIM_URLS < <(cargar_urls "$ARCHIVO_ANIM")
-        ANIM_TOTAL=${#ANIM_URLS[@]}
-        if [[ $ANIM_TOTAL -gt 0 ]]; then
-            ANIM_IDX=$(obtener_indice "animaciones"); ANIM_IDX="${ANIM_IDX:-0}"
-            (( ANIM_IDX >= ANIM_TOTAL )) && ANIM_IDX=0
-            ANIM_NUEVO=$(( (ANIM_IDX + 1) % ANIM_TOTAL ))
-            guardar_indice "animaciones" "$ANIM_NUEVO"
-            echo "  [$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL]"
-            echo "[$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL] - $(calcular_tiempo)" > "$LOG_FILE"
-            t_re "${ANIM_URLS[$ANIM_IDX]}" "separador $((ANIM_IDX+1))/$ANIM_TOTAL"
-        fi
+        mapfile -t ARC_A < <(cargar_urls "$ARCHIVO_ANIM")
+        ANIM_URLS+=("${ARC_A[@]}")
+    fi
+    ANIM_TOTAL=${#ANIM_URLS[@]}
+    if [[ $ANIM_TOTAL -gt 0 ]]; then
+        ANIM_IDX=$(obtener_indice "animaciones"); ANIM_IDX="${ANIM_IDX:-0}"
+        (( ANIM_IDX >= ANIM_TOTAL )) && ANIM_IDX=0
+        ANIM_NUEVO=$(( (ANIM_IDX + 1) % ANIM_TOTAL ))
+        guardar_indice "animaciones" "$ANIM_NUEVO"
+        echo "  [$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL]"
+        echo "[$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL] - $(calcular_tiempo)" > "$LOG_FILE"
+        t_re "${ANIM_URLS[$ANIM_IDX]}" "separador $((ANIM_IDX+1))/$ANIM_TOTAL"
     fi
 done
