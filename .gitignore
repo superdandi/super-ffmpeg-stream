@@ -1,0 +1,6 @@
+.vlive_state
+*.log
+/tmp/
+overlay/
+.DS_Store
+*.swp

@@ -1,0 +1,16 @@
+# Parrilla - Programacion diaria
+# Formato: HH:MM-HH:MM | categoria
+# La categoria debe ser un archivo existente en ~/{categoria}
+06:00-07:00 | noticias
+07:00-09:00 | musicales
+09:00-10:00 | animados
+10:00-11:00 | animales
+11:00-13:00 | musicales
+13:00-14:00 | comidas
+14:00-16:00 | documentales
+16:00-18:00 | musicales
+18:00-19:00 | deportes
+19:00-22:00 | animados
+22:00-23:00 | noticias
+23:00-03:00 | pelis
+03:00-06:00 | musicales
