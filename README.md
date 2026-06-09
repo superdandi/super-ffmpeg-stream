@@ -2,6 +2,10 @@
 
 Streamer universal para Twitch basado en FFmpeg. Permite transmitir en 3 modos: captura de pantalla, parrilla de videos por horario, o cámara web.
 
+> Este stream está actualmente en vivo en **[twitch.tv/vizcoso](https://twitch.tv/vizcoso)** — 24/7 reproduciendo videos de dominio público.
+
+Todos los videos son tomados de **[archive.org](https://archive.org)**, seleccionados por su antigüedad (años 70 o anteriores).
+
 ## Requisitos
 
 - **FFmpeg** compilado con libx264, aac, pulse, v4l2, x11grab
@@ -110,7 +114,7 @@ El formato es `título | URL`. Solo se requiere la URL después del pipe.
 | `animados` | Dibujos animados clásicos |
 | `animales` | Documentales y videos de animales |
 | `documentales` | Documentales de dominio público |
-| `pelis` | Películas completas de dominio público (pre-70s) |
+| `pelis` | Películas completas de dominio público (años 70 o anteriores) |
 | `comidas` | Videos de cocina y comidas |
 | `deportes` | Eventos deportivos clásicos |
 | `comerciales` | Comerciales vintage |
@@ -137,7 +141,9 @@ El estado se persiste entre reinicios del script para no repetir el mismo video.
 
 ## Notas
 
+- Todos los videos son de **dominio público** tomados de **[archive.org](https://archive.org)**
+- Seleccionados por antigüedad: **años 70 o anteriores**
+- El stream corre **24/7** en **[twitch.tv/vizcoso](https://twitch.tv/vizcoso)**
 - Todos los videos deben ser URLs directas accesibles por FFmpeg (idealmente MP4)
-- Las fuentes recomendadas son archive.org (dominio público)
 - La conexión a Twitch se valida con TCP al puerto RTMP 1935
 - Los logs de transmisión se escriben a `/tmp/stream_log_*.txt`
