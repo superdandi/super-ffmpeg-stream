@@ -56,6 +56,7 @@ transmitir() {
     local etiqueta="$2"
     shift 2
     local extra_inputs=("$@")
+    [[ -z "$url" ]] && { echo "  [!] URL vacia, saltando..."; return 1; }
     local cmd=(ffmpeg -hide_banner -loglevel error)
     local filter_string=""
 
@@ -95,7 +96,7 @@ resolver_url() {
     local url="$1"
     case "$url" in
         *youtube.com*|*youtu.be*)
-            yt-dlp -g -f "best[height<=720]" "$url" 2>/dev/null | head -1 ;;
+            yt-dlp -g -f "best[height<=720]" "$url" 2>/dev/null | head -1 || true ;;
         *) echo "$url" ;;
     esac
 }
