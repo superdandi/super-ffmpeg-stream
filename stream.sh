@@ -12,7 +12,7 @@ A_BITRATE="96k"
 FPS="24"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 STATE_FILE="$SCRIPT_DIR/.vlive_state"
-BOX=40
+BW=50
 LOG_FILE="/tmp/stream_log_$$.txt"
 STREAM_START=0
 has_text_overlay=0
@@ -24,10 +24,131 @@ OVERLAY_CUSTOM="${3:-}"
 #  Interfaz
 # ============================================================
 
-top()     { printf "  ┌%s┐\n" "$(printf '─%.0s' $(seq 1 $BOX))"; }
-bottom()  { printf "  └%s┘\n" "$(printf '─%.0s' $(seq 1 $BOX))"; }
-divider() { printf "  ├%s┤\n" "$(printf '─%.0s' $(seq 1 $BOX))"; }
-linea()   { printf "  │ %-*s│\n" "$BOX" "$1"; }
+top()     { printf '  ┌%s┐\n' "$(printf '─%.0s' $(seq 1 $BW))"; }
+bottom()  { printf '  └%s┘\n' "$(printf '─%.0s' $(seq 1 $BW))"; }
+divider() { printf '  ├%s┤\n' "$(printf '─%.0s' $(seq 1 $BW))"; }
+linea()   { printf '  │ %-*s│\n' "$((BW-1))" "$1"; }
+
+# ============================================================
+#  Dashboard (tput ncurses)
+# ============================================================
+
+declare -a EVENTS=()
+MAX_EVENTS=3
+
+init_ui() {
+    tput civis
+    tput clear
+}
+
+end_ui() {
+    tput cnorm
+    tput sgr0
+}
+
+box_content() {
+    printf '%-*s' "$BW" "$1"
+}
+
+render_dashboard() {
+    local modo="$1" tiempo="$2" categoria="$3" vidx="$4"
+    local vname="$5" vurl="$6" sig="$7"
+
+    local cb=$(tput bold)
+    local cn=$(tput sgr0)
+    local cB=$(tput setaf 4)
+    local cC=$(tput setaf 6)
+    local cY=$(tput setaf 3)
+    local cG=$(tput setaf 2)
+    local cR=$(tput setaf 1)
+    local cW=$(tput setaf 7)
+
+    local sep="$(printf '─%.0s' $(seq 1 $BW))"
+
+    tput cup 0 0
+
+    printf '%s┌%s┐%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cC$cb" "$(box_content '               VIZCOSO STREAMER v2               ')" "$cB" "$cn"
+    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Modo: $modo     Tiempo: $tiempo")" "$cB" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Categoria: $categoria  [$vidx]")" "$cB" "$cn"
+    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Video: $vname")" "$cB" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cW" "$(box_content "    $vurl")" "$cB" "$cn"
+    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Siguiente: $sig")" "$cB" "$cn"
+    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content '  Ultimos eventos:')" "$cB" "$cn"
+
+    local i ev ce
+    for ((i = 0; i < MAX_EVENTS; i++)); do
+        if [[ $i -lt ${#EVENTS[@]} ]]; then
+            ev="${EVENTS[$i]}"
+            if [[ "$ev" == *"OK"* ]]; then
+                ce="$cG"
+            elif [[ "$ev" == *"Error"* ]]; then
+                ce="$cR"
+            else
+                ce="$cW"
+            fi
+        else
+            ev=""
+            ce="$cW"
+        fi
+        printf '%s│%s%s%s│%s\n' "$cB" "$ce" "$(box_content "$ev")" "$cB" "$cn"
+    done
+
+    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
+    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content '  Ctrl+C para detener')" "$cB" "$cn"
+    printf '%s└%s┘%s\n'   "$cB" "$sep" "$cn"
+}
+
+log_event() {
+    local severity="$1" msg="$2"
+    local ts icon="●"
+    ts=$(date +%H:%M)
+    case "$severity" in
+        ok)  icon="OK" ;;
+        err) icon="Error" ;;
+        *)   icon="●" ;;
+    esac
+    EVENTS+=("$ts $icon $msg")
+    [[ ${#EVENTS[@]} -gt $MAX_EVENTS ]] && EVENTS=("${EVENTS[@]: -$MAX_EVENTS}")
+}
+
+# ============================================================
+#  URL helpers
+# ============================================================
+
+trunc() {
+    local s="$1" max="$2"
+    if [[ ${#s} -gt $max ]]; then
+        echo "${s:0:$((max-3))}..."
+    else
+        echo "$s"
+    fi
+}
+
+url_to_name() {
+    local url="$1" name=""
+    if [[ "$url" == *youtube.com/watch* ]]; then
+        name=$(echo "$url" | sed 's/.*v=//;s/&.*//' | head -1)
+        echo "Youtube [${name:-video}]"
+    elif [[ "$url" == *youtu.be/* ]]; then
+        name=$(echo "$url" | sed 's|.*youtu.be/||;s/?.*//' | head -1)
+        echo "Youtube [${name:-video}]"
+    else
+        name=$(basename "$url" | sed 's/%20/ /g' | sed -E 's/\.(mp4|webm|mkv|avi|flv)$//')
+        echo "${name:-unknown}"
+    fi
+}
+
+url_to_display() {
+    local url="$1"
+    local display="${url#https://}"
+    display="${display#http://}"
+    trunc "$display" 46
+}
 
 # ============================================================
 #  Stream helpers
@@ -428,8 +549,8 @@ has_text_overlay=1
 STREAM_START=$(date +%s)
 : > "$LOG_FILE"
 
-echo "  Stream iniciado"
-trap 'echo ""; echo "  Stream finalizado"; rm -f "$LOG_FILE"; exit 0' INT TERM
+init_ui
+trap 'end_ui; rm -f "$LOG_FILE"; exit 0' INT TERM
 
 while true; do
     CATEGORIA=$(obtener_categoria)
@@ -442,21 +563,25 @@ while true; do
         URLS+=("${VIZ_URLS[@]}")
     fi
 
-    [[ -f "$ARCHIVO" ]] || { echo "  [!] No se encuentra ~/$CATEGORIA, esperando 30s..."; sleep 30; continue; }
+    if [[ ! -f "$ARCHIVO" ]]; then
+        log_event err "No se encuentra $CATEGORIA"
+        render_dashboard "Parrilla" "$(calcular_tiempo)" "$CATEGORIA" "-" "-" "-" "-"
+        sleep 30; continue
+    fi
 
     mapfile -t ARCHIVE_URLS < <(cargar_urls "$ARCHIVO")
     URLS+=("${ARCHIVE_URLS[@]}")
     TOTAL=${#URLS[@]}
-    [[ $TOTAL -eq 0 ]] && { echo "  [!] ~/$CATEGORIA vacio, esperando 30s..."; sleep 30; continue; }
+    if [[ $TOTAL -eq 0 ]]; then
+        log_event err "$CATEGORIA vacio"
+        render_dashboard "Parrilla" "$(calcular_tiempo)" "$CATEGORIA" "-" "-" "-" "-"
+        sleep 30; continue
+    fi
 
     IDX=$(obtener_indice "$CATEGORIA"); IDX="${IDX:-0}"
     (( IDX >= TOTAL )) && IDX=0
     NUEVO_IDX=$(( (IDX + 1) % TOTAL ))
     guardar_indice "$CATEGORIA" "$NUEVO_IDX"
-
-    echo "  [$(date +%H:%M)] [$CATEGORIA $((IDX+1))/$TOTAL]"
-    echo "[$(date +%H:%M)] [$CATEGORIA $((IDX+1))/$TOTAL] - $(calcular_tiempo)" > "$LOG_FILE"
-    t_re "${URLS[$IDX]}" "$CATEGORIA $((IDX+1))/$TOTAL"
 
     ARCHIVO_ANIM="$SCRIPT_DIR/animaciones"
     VIZ_ANIM="$SCRIPT_DIR/vizcoso-animaciones"
@@ -473,10 +598,32 @@ while true; do
     if [[ $ANIM_TOTAL -gt 0 ]]; then
         ANIM_IDX=$(obtener_indice "animaciones"); ANIM_IDX="${ANIM_IDX:-0}"
         (( ANIM_IDX >= ANIM_TOTAL )) && ANIM_IDX=0
+        ANIM_SIG="separador $((ANIM_IDX+1))/$ANIM_TOTAL"
+    else
+        ANIM_SIG="-"
+    fi
+
+    VNAME=$(url_to_name "${URLS[$IDX]}")
+    VURL=$(url_to_display "${URLS[$IDX]}")
+    VIDX="$((IDX+1))/$TOTAL"
+    TIEMPO=$(calcular_tiempo)
+
+    log_event ok "$CATEGORIA $VIDX"
+    render_dashboard "Parrilla" "$TIEMPO" "$CATEGORIA" "$VIDX" "$VNAME" "$VURL" "$ANIM_SIG"
+    echo "[$(date +%H:%M)] [$CATEGORIA $VIDX] - $TIEMPO" > "$LOG_FILE"
+    t_re "${URLS[$IDX]}" "$CATEGORIA $VIDX"
+
+    if [[ $ANIM_TOTAL -gt 0 ]]; then
         ANIM_NUEVO=$(( (ANIM_IDX + 1) % ANIM_TOTAL ))
         guardar_indice "animaciones" "$ANIM_NUEVO"
-        echo "  [$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL]"
-        echo "[$(date +%H:%M)] [separador $((ANIM_IDX+1))/$ANIM_TOTAL] - $(calcular_tiempo)" > "$LOG_FILE"
-        t_re "${ANIM_URLS[$ANIM_IDX]}" "separador $((ANIM_IDX+1))/$ANIM_TOTAL"
+        TIEMPO=$(calcular_tiempo)
+        SNAME=$(url_to_name "${ANIM_URLS[$ANIM_IDX]}")
+        SURL=$(url_to_display "${ANIM_URLS[$ANIM_IDX]}")
+        SIDX="$((ANIM_IDX+1))/$ANIM_TOTAL"
+
+        log_event ok "separador $SIDX"
+        render_dashboard "Parrilla" "$TIEMPO" "$CATEGORIA" "$VIDX" "$SNAME" "$SURL" "-"
+        echo "[$(date +%H:%M)] [separador $SIDX] - $TIEMPO" > "$LOG_FILE"
+        t_re "${ANIM_URLS[$ANIM_IDX]}" "separador $SIDX"
     fi
 done
