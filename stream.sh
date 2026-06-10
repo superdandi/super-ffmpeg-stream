@@ -180,7 +180,7 @@ url_to_display() {
 #  Stream helpers
 # ============================================================
 
-OVERLAY_FILTER="[1]scale='min(iw*0.15,200)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+OVERLAY_FILTER="[1]scale='max(min(iw*0.15,200),150)':-2[over];[0][over]overlay=W-w-10:H-h-10"
 
 validar_key() {
     local key="$1"
@@ -211,11 +211,11 @@ transmitir() {
 
     if [[ $has_overlay -eq 1 ]]; then
         cmd+=(-i "$OVERLAY")
-        filter_string="[1]scale='min(iw*0.15,200)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+        filter_string="[1]scale='max(min(iw*0.15,200),150)':-2[over];[0][over]overlay=W-w-10:H-h-10"
     fi
 
     if [[ $has_text_overlay -eq 1 ]]; then
-        local text_filter="drawtext=textfile='$LOG_FILE':reload=1:fontsize=18:fontcolor=white:x=10:y=H-th-30:shadowcolor=black:shadowx=2:shadowy=2"
+        local text_filter="drawtext=textfile='$LOG_FILE':reload=1:fontsize=13:fontcolor=#ff00ff:fontfile=/usr/share/fonts/xscreensaver/clacon.ttf:x=10:y=H-th-30:shadowcolor=black:shadowx=2:shadowy=2"
         if [[ -n "$filter_string" ]]; then
             filter_string+=",$text_filter"
         else

@@ -132,7 +132,7 @@ while true; do
         ffmpeg -hide_banner -loglevel error \
                -re -i "$URL" \
                -i "$OVERLAY" \
-               -filter_complex "[1]scale='min(iw*0.15,200)':-1[over];[0][over]overlay=W-w-10:H-h-10" \
+               -filter_complex "[1]scale='max(min(iw*0.15,200),150)':-1[over];[0][over]overlay=W-w-10:H-h-10" \
                -c:v libx264 -preset ultrafast -b:v "$V_BITRATE" \
                -maxrate "$V_BITRATE" -bufsize 3000k \
                -pix_fmt yuv420p -g 48 \
@@ -173,7 +173,7 @@ while true; do
                 ffmpeg -hide_banner -loglevel error \
                        -re -i "$ANIM_URL" \
                        -i "$OVERLAY" \
-                       -filter_complex "[1]scale='min(iw*0.15,200)':-1[over];[0][over]overlay=W-w-10:H-h-10" \
+                       -filter_complex "[1]scale='max(min(iw*0.15,200),150)':-1[over];[0][over]overlay=W-w-10:H-h-10" \
                        -c:v libx264 -preset ultrafast -b:v "$V_BITRATE" \
                        -maxrate "$V_BITRATE" -bufsize 3000k \
                        -pix_fmt yuv420p -g 48 \
