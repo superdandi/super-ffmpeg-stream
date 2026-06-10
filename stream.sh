@@ -157,12 +157,9 @@ trunc() {
 
 url_to_name() {
     local url="$1" name=""
-    if [[ "$url" == *youtube.com/watch* ]]; then
-        name=$(echo "$url" | sed 's/.*v=//;s/&.*//' | head -1)
-        echo "Youtube [${name:-video}]"
-    elif [[ "$url" == *youtu.be/* ]]; then
-        name=$(echo "$url" | sed 's|.*youtu.be/||;s/?.*//' | head -1)
-        echo "Youtube [${name:-video}]"
+    if [[ "$url" == *youtube.com/watch* || "$url" == *youtu.be/* ]]; then
+        name=$(yt-dlp --get-title --no-warnings "$url" 2>/dev/null | head -1)
+        echo "${name:-Youtube [${url##*v=}]}"
     else
         name=$(basename "$url" | sed 's/%20/ /g' | sed -E 's/\.(mp4|webm|mkv|avi|flv)$//')
         echo "${name:-unknown}"
@@ -180,7 +177,7 @@ url_to_display() {
 #  Stream helpers
 # ============================================================
 
-OVERLAY_FILTER="[1]scale='max(min(iw*0.15,200),150)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+OVERLAY_FILTER="[1]scale='max(min(iw*0.15,200),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
 
 validar_key() {
     local key="$1"
@@ -211,11 +208,11 @@ transmitir() {
 
     if [[ $has_overlay -eq 1 ]]; then
         cmd+=(-i "$OVERLAY")
-        filter_string="[1]scale='max(min(iw*0.15,200),150)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+        filter_string="[1]scale='max(min(iw*0.15,200),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
     fi
 
     if [[ $has_text_overlay -eq 1 ]]; then
-        local text_filter="drawtext=textfile='$LOG_FILE':reload=1:fontsize=13:fontcolor=#ff00ff:fontfile=/usr/share/fonts/xscreensaver/clacon.ttf:x=10:y=H-th-30:shadowcolor=black:shadowx=2:shadowy=2"
+        local text_filter="drawtext=textfile='$LOG_FILE':reload=1:fontsize=15:fontcolor=#ff00ff:fontfile=/usr/share/fonts/xscreensaver/clacon.ttf:x=10:y=H-th-30:shadowcolor=black:shadowx=2:shadowy=2"
         if [[ -n "$filter_string" ]]; then
             filter_string+=",$text_filter"
         else
@@ -670,7 +667,7 @@ while true; do
 
     log_event ok "$CATEGORIA $VIDX"
     render_dashboard "Parrilla" "$TIEMPO" "$CATEGORIA" "$VIDX" "$VNAME" "$VURL" "$ANIM_SIG"
-    echo "[$(date +%H:%M)] [$CATEGORIA $VIDX] - $TIEMPO" > "$LOG_FILE"
+    echo "[$(date +%H:%M)] [$CATEGORIA $VIDX - $VNAME] - $TIEMPO" > "$LOG_FILE"
     t_re "${URLS[$IDX]}" "$CATEGORIA $VIDX"
 
     if [[ $ANIM_TOTAL -gt 0 ]]; then
@@ -683,7 +680,7 @@ while true; do
 
         log_event ok "separador $SIDX"
         render_dashboard "Parrilla" "$TIEMPO" "$CATEGORIA" "$VIDX" "$SNAME" "$SURL" "-"
-        echo "[$(date +%H:%M)] [separador $SIDX] - $TIEMPO" > "$LOG_FILE"
+        echo "[$(date +%H:%M)] [separador $SIDX - $SNAME] - $TIEMPO" > "$LOG_FILE"
         t_re "${ANIM_URLS[$ANIM_IDX]}" "separador $SIDX"
     fi
 done
