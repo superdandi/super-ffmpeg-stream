@@ -50,57 +50,80 @@ box_content() {
     printf '%-*s' "$BW" "$1"
 }
 
-render_dashboard() {
-    local modo="$1" tiempo="$2" categoria="$3" vidx="$4"
-    local vname="$5" vurl="$6" sig="$7"
+dash_setup() {
+    cb=$(tput bold)
+    cn=$(tput sgr0)
+    cB=$(tput setaf 4)
+    cC=$(tput setaf 6)
+    cY=$(tput setaf 3)
+    cG=$(tput setaf 2)
+    cR=$(tput setaf 1)
+    cW=$(tput setaf 7)
+    sep="$(printf '─%.0s' $(seq 1 $BW))"
+}
 
-    local cb=$(tput bold)
-    local cn=$(tput sgr0)
-    local cB=$(tput setaf 4)
-    local cC=$(tput setaf 6)
-    local cY=$(tput setaf 3)
-    local cG=$(tput setaf 2)
-    local cR=$(tput setaf 1)
-    local cW=$(tput setaf 7)
+dash_top()     { printf '%s┌%s┐%s\n'   "$cB" "$sep" "$cn"; }
+dash_div()     { printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"; }
+dash_bot()     { printf '%s└%s┘%s\n'   "$cB" "$sep" "$cn"; }
+dash_title()   { printf '%s│%s%s%s│%s\n' "$cB" "$cC$cb" "$(box_content '               VIZCOSO STREAMER v2               ')" "$cB" "$cn"; }
+dash_sub()     { printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  $1     $2")" "$cB" "$cn"; }
+dash_line()    { printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  $1")" "$cB" "$cn"; }
+dash_line_raw(){ printf '%s│%s%s%s│%s\n' "$cB" "$1" "$(box_content "$2")" "$cB" "$cn"; }
 
-    local sep="$(printf '─%.0s' $(seq 1 $BW))"
-
-    tput cup 0 0
-
-    printf '%s┌%s┐%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cC$cb" "$(box_content '               VIZCOSO STREAMER v2               ')" "$cB" "$cn"
-    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Modo: $modo     Tiempo: $tiempo")" "$cB" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Categoria: $categoria  [$vidx]")" "$cB" "$cn"
-    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Video: $vname")" "$cB" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cW" "$(box_content "    $vurl")" "$cB" "$cn"
-    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content "  Siguiente: $sig")" "$cB" "$cn"
-    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content '  Ultimos eventos:')" "$cB" "$cn"
-
+dash_events() {
     local i ev ce
     for ((i = 0; i < MAX_EVENTS; i++)); do
         if [[ $i -lt ${#EVENTS[@]} ]]; then
             ev="${EVENTS[$i]}"
-            if [[ "$ev" == *"OK"* ]]; then
-                ce="$cG"
-            elif [[ "$ev" == *"Error"* ]]; then
-                ce="$cR"
-            else
-                ce="$cW"
-            fi
-        else
-            ev=""
-            ce="$cW"
-        fi
-        printf '%s│%s%s%s│%s\n' "$cB" "$ce" "$(box_content "$ev")" "$cB" "$cn"
+            if [[ "$ev" == *"OK"* ]]; then ce="$cG"
+            elif [[ "$ev" == *"Error"* ]]; then ce="$cR"
+            else ce="$cW"; fi
+        else ev=""; ce="$cW"; fi
+        dash_line_raw "$ce" "$ev"
     done
+}
 
-    printf '%s├%s┤%s\n'   "$cB" "$sep" "$cn"
-    printf '%s│%s%s%s│%s\n' "$cB" "$cY" "$(box_content '  Ctrl+C para detener')" "$cB" "$cn"
-    printf '%s└%s┘%s\n'   "$cB" "$sep" "$cn"
+render_dashboard() {
+    local modo="$1" tiempo="$2" categoria="$3" vidx="$4"
+    local vname="$5" vurl="$6" sig="$7"
+
+    dash_setup
+    tput cup 0 0
+    dash_top; dash_title; dash_div
+    dash_sub "$modo" "$tiempo"
+    dash_line "Categoria: $categoria  [$vidx]"
+    dash_div
+    dash_line "Video: $vname"
+    dash_line_raw "$cW" "  $vurl"
+    dash_div
+    dash_line "Siguiente: $sig"
+    dash_div
+    dash_line "Ultimos eventos:"
+    dash_events
+    dash_div
+    dash_line "Ctrl+C para detener"
+    dash_bot
+}
+
+render_info_dashboard() {
+    local mode="$1" tiempo="$2"
+    shift 2
+    local rows=("$@")
+
+    dash_setup
+    tput cup 0 0
+    dash_top; dash_title; dash_div
+    dash_sub "$mode" "$tiempo"
+    local row
+    for row in "${rows[@]}"; do
+        dash_line "$row"
+    done
+    dash_div
+    dash_line "Ultimos eventos:"
+    dash_events
+    dash_div
+    dash_line "Ctrl+C para detener"
+    dash_bot
 }
 
 log_event() {
@@ -470,10 +493,22 @@ if [[ "$MODO" == 1 ]]; then
     RES=$(detectar_resolucion)
     AUDIO=$(obtener_audio_sink)
 
-    echo "  Resolucion : $RES"
-    [[ -n "$AUDIO" ]] && echo "  Audio      : $AUDIO" || echo "  [!] Audio de sistema NO DISPONIBLE"
-    echo ""
-    echo "  Stream iniciado"
+    init_ui
+    STREAM_START=$(date +%s)
+    trap 'end_ui; rm -f "$LOG_FILE"; exit 0' INT TERM
+
+    log_event ok "Stream iniciado"
+    log_event info "Resolucion: $RES"
+    [[ -n "$AUDIO" ]] && log_event ok "Audio: $AUDIO" || log_event err "Audio NO disponible"
+
+    render_info_dashboard "Pantalla" "$(calcular_tiempo)" \
+        "Resolucion: $RES" \
+        "Audio: ${AUDIO:-NO}" \
+        "Bitrate: $V_BITRATE / $A_BITRATE" \
+        "Overlay: $TEXTO_OVERLAY"
+
+    : > "$LOG_FILE"
+    echo "[$(date +%H:%M)] [Pantalla - $RES]" > "$LOG_FILE"
 
     cmd=(ffmpeg -hide_banner -loglevel error)
     cmd+=(-video_size "$RES" -framerate "$FPS" -f x11grab -i ":0.0+0,0")
@@ -496,6 +531,7 @@ if [[ "$MODO" == 1 ]]; then
     )
 
     "${cmd[@]}"
+    end_ui
     exit 0
 fi
 
@@ -508,11 +544,23 @@ if [[ "$MODO" == 3 ]]; then
     CAM_RES=$(detectar_camara_res)
     AUDIO=$(obtener_audio_source)
 
-    echo "  Dispositivo : $CAMPATH"
-    echo "  Resolucion  : $CAM_RES"
-    [[ -n "$AUDIO" ]] && echo "  Audio       : $AUDIO" || echo "  [!] Microfono NO DISPONIBLE"
-    echo ""
-    echo "  Stream iniciado"
+    init_ui
+    STREAM_START=$(date +%s)
+    trap 'end_ui; rm -f "$LOG_FILE"; exit 0' INT TERM
+
+    log_event ok "Stream iniciado"
+    log_event info "Resolucion: $CAM_RES"
+    log_event info "Dispositivo: $CAMPATH"
+    [[ -n "$AUDIO" ]] && log_event ok "Audio: $AUDIO" || log_event err "Audio NO disponible"
+
+    render_info_dashboard "Camara" "$(calcular_tiempo)" \
+        "Resolucion: $CAM_RES" \
+        "Dispositivo: $CAMPATH" \
+        "Audio: ${AUDIO:-NO}" \
+        "Overlay: $TEXTO_OVERLAY"
+
+    : > "$LOG_FILE"
+    echo "[$(date +%H:%M)] [Camara - $CAM_RES]" > "$LOG_FILE"
 
     cmd=(ffmpeg -hide_banner -loglevel error)
     cmd+=(-f v4l2 -framerate 30 -video_size "$CAM_RES" -i "$CAMPATH")
@@ -535,6 +583,7 @@ if [[ "$MODO" == 3 ]]; then
     )
 
     "${cmd[@]}"
+    end_ui
     exit 0
 fi
 
