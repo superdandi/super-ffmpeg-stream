@@ -177,7 +177,7 @@ url_to_display() {
 #  Stream helpers
 # ============================================================
 
-OVERLAY_FILTER="[1]scale='max(min(iw*0.15,200),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+OVERLAY_FILTER="[1]scale='max(min(iw*0.15,150),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
 
 validar_key() {
     local key="$1"
@@ -208,7 +208,7 @@ transmitir() {
 
     if [[ $has_overlay -eq 1 ]]; then
         cmd+=(-i "$OVERLAY")
-        filter_string="[1]scale='max(min(iw*0.15,200),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
+        filter_string="[1]scale='max(min(iw*0.15,150),120)':-2[over];[0][over]overlay=W-w-10:H-h-10"
     fi
 
     if [[ $has_text_overlay -eq 1 ]]; then
