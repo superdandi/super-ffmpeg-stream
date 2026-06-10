@@ -47,7 +47,8 @@ end_ui() {
 }
 
 box_content() {
-    printf '%-*s' "$BW" "$1"
+    local s="${1:0:BW}"
+    printf '%-*s' "$BW" "$s"
 }
 
 dash_setup() {
@@ -90,7 +91,7 @@ render_dashboard() {
     dash_setup
     tput cup 0 0
     dash_top; dash_title; dash_div
-    dash_sub "$modo" "$tiempo"
+    dash_sub "Modo: $modo" "Tiempo: $tiempo"
     dash_line "Categoria: $categoria  [$vidx]"
     dash_div
     dash_line "Video: $vname"
@@ -113,7 +114,7 @@ render_info_dashboard() {
     dash_setup
     tput cup 0 0
     dash_top; dash_title; dash_div
-    dash_sub "$mode" "$tiempo"
+    dash_sub "Modo: $mode" "Tiempo: $tiempo"
     local row
     for row in "${rows[@]}"; do
         dash_line "$row"
@@ -136,7 +137,9 @@ log_event() {
         *)   icon="●" ;;
     esac
     EVENTS+=("$ts $icon $msg")
-    [[ ${#EVENTS[@]} -gt $MAX_EVENTS ]] && EVENTS=("${EVENTS[@]: -$MAX_EVENTS}")
+    if [[ ${#EVENTS[@]} -gt $MAX_EVENTS ]]; then
+        EVENTS=("${EVENTS[@]: -$MAX_EVENTS}")
+    fi
 }
 
 # ============================================================
@@ -499,7 +502,11 @@ if [[ "$MODO" == 1 ]]; then
 
     log_event ok "Stream iniciado"
     log_event info "Resolucion: $RES"
-    [[ -n "$AUDIO" ]] && log_event ok "Audio: $AUDIO" || log_event err "Audio NO disponible"
+    if [[ -n "$AUDIO" ]]; then
+        log_event ok "Audio: $AUDIO"
+    else
+        log_event err "Audio NO disponible"
+    fi
 
     render_info_dashboard "Pantalla" "$(calcular_tiempo)" \
         "Resolucion: $RES" \
@@ -551,7 +558,11 @@ if [[ "$MODO" == 3 ]]; then
     log_event ok "Stream iniciado"
     log_event info "Resolucion: $CAM_RES"
     log_event info "Dispositivo: $CAMPATH"
-    [[ -n "$AUDIO" ]] && log_event ok "Audio: $AUDIO" || log_event err "Audio NO disponible"
+    if [[ -n "$AUDIO" ]]; then
+        log_event ok "Audio: $AUDIO"
+    else
+        log_event err "Audio NO disponible"
+    fi
 
     render_info_dashboard "Camara" "$(calcular_tiempo)" \
         "Resolucion: $CAM_RES" \
